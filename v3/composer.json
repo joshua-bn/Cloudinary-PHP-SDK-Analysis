@@ -1,0 +1,17 @@
+{
+    "name": "cloudinary/profiling-test-v3",
+    "description": "Performance profiling test for Cloudinary PHP SDK v3",
+    "type": "project",
+    "require": {
+        "php": "^8.3",
+        "cloudinary/cloudinary_php": "^3"
+    },
+    "autoload": {
+        "psr-4": {
+            "CloudinaryProfiling\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  cloudinary-profiler:
+    build: .
+    volumes:
+      - ./profiler_output:/tmp/xdebug
+      - ./src:/app/src
+    environment:
+      - XDEBUG_MODE=profile
+    platform: linux/amd64  # Ensures compatibility with Mac M1
+    stdin_open: true
+    tty: true
