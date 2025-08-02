@@ -1,0 +1,17 @@
+# Profiler output files
+profiler_output/
+*/profiler_output/
+
+# IDE files
+.idea/
+.vscode/
+
+# Composer
+vendor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
