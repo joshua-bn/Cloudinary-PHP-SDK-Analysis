@@ -9,3 +9,15 @@ services:
     platform: linux/amd64  # Ensures compatibility with Mac M1
     stdin_open: true
     tty: true
+    
+  cloudinary-profiler-v3-fluent:
+    build: .
+    volumes:
+      - ./profiler_output_fluent:/tmp/xdebug
+      - ./src:/app/src
+    environment:
+      - XDEBUG_MODE=profile
+    platform: linux/amd64  # Ensures compatibility with Mac M1
+    stdin_open: true
+    tty: true
+    command: ["php", "src/profiling_test_fluent_api.php"]

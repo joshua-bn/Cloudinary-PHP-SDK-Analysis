@@ -195,14 +195,116 @@ def compare_versions(v2_analyzer, v3_analyzer):
         else:
             print(f"   📊 v2 is {abs(total_improvement):.1f}% faster overall")
 
+def analyze_three_way_performance(v2_dir, v3_dir, v3_fluent_dir):
+    """Compare v2, v3 backward compatible, and v3 fluent API performance"""
+    
+    print("🔍 Cloudinary SDK Three-Way Performance Analysis")
+    print("=" * 60)
+    
+    # Find cachegrind files
+    v2_files = list(Path(v2_dir).glob("cachegrind.out.*"))
+    v3_files = list(Path(v3_dir).glob("cachegrind.out.*"))
+    v3_fluent_files = list(Path(v3_fluent_dir).glob("cachegrind.out.*"))
+    
+    if not v2_files:
+        print(f"❌ No cachegrind files found in {v2_dir}")
+        return
+    
+    if not v3_files:
+        print(f"❌ No cachegrind files found in {v3_dir}")
+        return
+        
+    if not v3_fluent_files:
+        print(f"❌ No cachegrind files found in {v3_fluent_dir}")
+        return
+    
+    print(f"📊 Analyzing {len(v2_files)} v2, {len(v3_files)} v3 backward compatible, and {len(v3_fluent_files)} v3 fluent API files")
+    print()
+    
+    # Analyze latest files
+    v2_analyzer = CachegrindAnalyzer(sorted(v2_files)[-1])
+    v3_analyzer = CachegrindAnalyzer(sorted(v3_files)[-1])
+    v3_fluent_analyzer = CachegrindAnalyzer(sorted(v3_fluent_files)[-1])
+    
+    print("🚀 **V2 SDK ANALYSIS**")
+    print("-" * 30)
+    print_performance_issues(v2_analyzer, "v2")
+    
+    print("\n🚀 **V3 SDK BACKWARD COMPATIBLE ANALYSIS**")
+    print("-" * 50)
+    print_performance_issues(v3_analyzer, "v3-compat")
+    
+    print("\n🚀 **V3 SDK FLUENT API ANALYSIS**")
+    print("-" * 40)
+    print_performance_issues(v3_fluent_analyzer, "v3-fluent")
+    
+    print("\n📊 **THREE-WAY COMPARATIVE ANALYSIS**")
+    print("-" * 50)
+    compare_three_versions(v2_analyzer, v3_analyzer, v3_fluent_analyzer)
+
+def compare_three_versions(v2_analyzer, v3_analyzer, v3_fluent_analyzer):
+    """Compare all three versions"""
+    
+    print(f"⏱️  Total Execution Time Comparison:")
+    print(f"   v2:            {v2_analyzer.total_time:,} time units")
+    print(f"   v3 (compat):   {v3_analyzer.total_time:,} time units")
+    print(f"   v3 (fluent):   {v3_fluent_analyzer.total_time:,} time units")
+    
+    # Compare v2 to v3 compat
+    if v2_analyzer.total_time > 0 and v3_analyzer.total_time > 0:
+        v3_improvement = ((v2_analyzer.total_time - v3_analyzer.total_time) / v2_analyzer.total_time) * 100
+        if v3_improvement > 0:
+            print(f"   🚀 v3 compat is {v3_improvement:.1f}% faster than v2")
+        else:
+            print(f"   📊 v2 is {abs(v3_improvement):.1f}% faster than v3 compat")
+    
+    # Compare v3 compat to v3 fluent
+    if v3_analyzer.total_time > 0 and v3_fluent_analyzer.total_time > 0:
+        fluent_improvement = ((v3_analyzer.total_time - v3_fluent_analyzer.total_time) / v3_analyzer.total_time) * 100
+        if fluent_improvement > 0:
+            print(f"   🚀 v3 fluent is {fluent_improvement:.1f}% faster than v3 compat")
+        else:
+            print(f"   📊 v3 compat is {abs(fluent_improvement):.1f}% faster than v3 fluent")
+    
+    # Compare v2 to v3 fluent
+    if v2_analyzer.total_time > 0 and v3_fluent_analyzer.total_time > 0:
+        total_improvement = ((v2_analyzer.total_time - v3_fluent_analyzer.total_time) / v2_analyzer.total_time) * 100
+        if total_improvement > 0:
+            print(f"   🚀 v3 fluent is {total_improvement:.1f}% faster than v2 overall")
+        else:
+            print(f"   📊 v2 is {abs(total_improvement):.1f}% faster than v3 fluent overall")
+    
+    # Configuration analysis comparison
+    v2_config = v2_analyzer.find_configuration_issues()['configuration']
+    v3_config = v3_analyzer.find_configuration_issues()['configuration']
+    v3_fluent_config = v3_fluent_analyzer.find_configuration_issues()['configuration']
+    
+    v2_config_time = sum(data['time'] for data in v2_config.values())
+    v3_config_time = sum(data['time'] for data in v3_config.values())
+    v3_fluent_config_time = sum(data['time'] for data in v3_fluent_config.values())
+    
+    v2_config_percentage = (v2_config_time / v2_analyzer.total_time * 100) if v2_analyzer.total_time > 0 else 0
+    v3_config_percentage = (v3_config_time / v3_analyzer.total_time * 100) if v3_analyzer.total_time > 0 else 0
+    v3_fluent_config_percentage = (v3_fluent_config_time / v3_fluent_analyzer.total_time * 100) if v3_fluent_analyzer.total_time > 0 else 0
+    
+    print(f"\n🔧 Configuration Performance Comparison:")
+    print(f"   v2:            {v2_config_percentage:.2f}% of total time")
+    print(f"   v3 (compat):   {v3_config_percentage:.2f}% of total time")
+    print(f"   v3 (fluent):   {v3_fluent_config_percentage:.2f}% of total time")
+
 def main():
     parser = argparse.ArgumentParser(description='Analyze Cloudinary SDK performance')
     parser.add_argument('--v2-dir', default='v2/profiler_output', help='v2 profiler output directory')
     parser.add_argument('--v3-dir', default='v3/profiler_output', help='v3 profiler output directory')
+    parser.add_argument('--v3-fluent-dir', default='v3/profiler_output_fluent', help='v3 fluent API profiler output directory')
+    parser.add_argument('--compare-all', action='store_true', help='Compare v2, v3 backward compatible, and v3 fluent APIs')
     
     args = parser.parse_args()
     
-    analyze_sdk_performance(args.v2_dir, args.v3_dir)
+    if args.compare_all:
+        analyze_three_way_performance(args.v2_dir, args.v3_dir, args.v3_fluent_dir)
+    else:
+        analyze_sdk_performance(args.v2_dir, args.v3_dir)
 
 if __name__ == '__main__':
     main()
